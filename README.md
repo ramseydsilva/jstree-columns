@@ -1,5 +1,5 @@
-jstree.columns
-==============
+JSTree Columns Plugin
+=====================
 
 Overview
 --------
@@ -31,7 +31,7 @@ If you want 2 additional columns, layout your html like so:
     </div>
 ```
 
-Next make sure you load the data for your mainTree specifying data attributes for additional columns. Also instantiate trees for your additional columns seperately and include them in your columns settings for your main tree. Your javascript will look something like this:
+Include jstree.columns.js in your javascript stack. Instantiate trees for your additional columns seperately and include them in your columns settings for your main tree. Ensure that you lspecify data attributes for additional columns in the JSON for each node in your main tree. Your javascript will look something like this:
 
 ```
     var column1Tree = $('.column1Tree').jstree({
