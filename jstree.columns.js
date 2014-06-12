@@ -16,17 +16,18 @@
     }
 }(function ($) {
     
-    $.jstree.defaults.columns = {
-	};
+    var _triggerSelect = true;
+	
+    $.jstree.defaults.columns = {};
 
 	$.jstree.plugins.columns = function(options,parent) {
         
-        var getNew = function(toReplace, oldInstance, newInstance) {
+        var getNodeName = function(toReplace, mainInstance, newInstance) {
 			if (typeof toReplace == "string") {
-				return toReplace.replace('j'+oldInstance._id+'_', 'j'+newInstance._id+'_');
+				return toReplace.replace('j'+mainInstance._id+'_', 'j'+newInstance._id+'_');
 			} else if (Object.prototype.toString.call( toReplace ) === '[object Array]') {
 				for(var i=0; i<toReplace.length; i++) {
-					toReplace[i] = getNew(toReplace[i], oldInstance, newInstance);
+					toReplace[i] = getNodeName(toReplace[i], mainInstance, newInstance);
 				}
 				return toReplace;
 			} else {
@@ -34,8 +35,8 @@
 			}
 		}
 		
-		var replaceKeyValues = function(object, key, oldInstance, newInstance, textKey) {
-			var newKey = getNew(key, oldInstance, newInstance); // replace key
+		var replaceKeyValues = function(object, key, mainInstance, newInstance, textKey) {
+			var newKey = getNodeName(key, mainInstance, newInstance); // replace key
 			if (newKey != key) {
 				object[newKey] = object[key]; // copy data into new key				
 				delete object[key];
@@ -43,40 +44,78 @@
 				newKey = key;
 			}
 			if (newKey == "text") {
-				object[newKey] = object.data[textKey];
+				object[newKey] = object.data ? object.data[textKey] : "";
 			}
 			
-			object[newKey] = getNew(object[newKey], oldInstance, newInstance); // replace value of the key
+			object[newKey] = getNodeName(object[newKey], mainInstance, newInstance); // replace value of the key
 			return newKey;
 		}
 		
-		var generateDataModel = function(object, oldInstance, newInstance, textKey) {
+		var generateDataModel = function(object, mainInstance, newInstance, textKey) {
 			for (var key in object) {
 				if (object.hasOwnProperty(key)) {
-					var newKey = replaceKeyValues(object, key, oldInstance, newInstance, textKey);
-					if (newKey.indexOf("#") != -1 || newKey.indexOf("j"+newInstance._id+"_") != -1
+					var newKey = replaceKeyValues(object, key, mainInstance, newInstance, textKey);
+					if (newKey.indexOf('data') != -1 || newKey.indexOf("#") != -1 || newKey.indexOf("j"+newInstance._id+"_") != -1
 						|| newKey.indexOf("children") != -1 || newKey.indexOf("parent") != -1)
-						generateDataModel(object[newKey], oldInstance, newInstance, textKey);
+						generateDataModel(object[newKey], mainInstance, newInstance, textKey);
 				}
 			}			
 		}
 		
+		var redraw = function(mainInstance, newInstance, textKey) {
+			var _model = $.extend(true, {}, mainInstance._model);
+			generateDataModel(_model, mainInstance, newInstance, textKey);
+			newInstance._model = _model;
+			newInstance.redraw(true);			
+		}
+		
+		var getNode = function(node, mainInstance, newInstance) {
+			return newInstance.get_node(getNodeName(node.id, mainInstance, newInstance));
+		}
+		
         var bind = function(column) {
-			var that = this;
+			var mainInstance = this;
 			var instance = column.instance;
-			var data = instance._model.data;
 			var textKey = column.key;
 			
-			this.element
+			mainInstance.element
+				.on("open_node.jstree", function(e, data) {
+					var node = getNode(data.node, mainInstance, instance);
+					node.state.loading = false;
+					node.state.loaded = true;
+					instance.open_node(node);	
+				})
+				.on("close_node.jstree", function(e, data) {
+					var node = getNode(data.node, mainInstance, instance);					
+					instance.close_node(node);
+				})
+				.on("move_node.jstree", function(e, data) {
+					var node = getNode(data.node, mainInstance, instance);
+					var parent = getNodeName(data.parent, mainInstance, instance);
+					var parentNode = getNode(parent, mainInstance, instance);
+					//instance.load_node(parentNode, function() {
+						console.log("moved");
+						console.log(node, parent, data.position);
+						redraw(mainInstance, instance, textKey);
+					//});					
+				})
 				.on("redraw.jstree", function (e, data) {
-					console.log("redraw", column.title, "as well");
 					instance.redraw(true);
 				})
-				.on("model.jstree", function(e, args) {					
-					data = $.extend(true, {}, that._model.data);
-					generateDataModel(data, that, instance, textKey);
-					instance._model.data = data;
-					console.log(data);
+				.on("rename_node.jstree", function(e, data) {
+					instance.redraw(true);
+				})
+				.on("model.jstree", function(e, args) {										
+					redraw(mainInstance, instance, textKey);
+				});
+				
+			instance.element
+				.on("rename_node.jstree", function(e, args) {
+					var node = getNode(args.node, instance, mainInstance);
+					node.data[textKey] = instance.get_text(args.node);
+				}).on("click", function(e) {
+					e.preventDefault();
+					return false;
 				});
 		};
 		
@@ -93,7 +132,7 @@
 		};
 		
 		this.init = function (el,options) { 
-			parent.init.call(this,el,options);
+			parent.init.call(this, el, options);
 			initialize.call(this, el, options);
 		};
 
