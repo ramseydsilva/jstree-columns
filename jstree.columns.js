@@ -69,6 +69,13 @@
 			newInstance.redraw(true);			
 		}
 		
+		var redrawParent = function(parentNode, mainInstance, newInstance, textKey) {
+			var _model = $.extend(true, {}, mainInstance._model);
+			generateDataModel(_model, mainInstance, newInstance, textKey);
+			newInstance._model = _model;
+			newInstance.redraw_node(parentNode);					
+		}
+		
 		var getNode = function(node, mainInstance, newInstance) {
 			return newInstance.get_node(getNodeName(node.id, mainInstance, newInstance));
 		}
@@ -81,29 +88,17 @@
 			mainInstance.element
 				.on("open_node.jstree", function(e, data) {
 					var node = getNode(data.node, mainInstance, instance);
-					node.state.loading = false;
-					node.state.loaded = true;
-					instance.open_node(node);	
+					redrawParent(node, mainInstance, instance, textKey);
 				})
 				.on("close_node.jstree", function(e, data) {
-					var node = getNode(data.node, mainInstance, instance);					
+					var node = getNode(data.node, mainInstance, instance);				
 					instance.close_node(node);
 				})
+				.on("delete_node.jstree", function(e, data) {
+					redraw(mainInstance, instance, textKey);	
+				})
 				.on("move_node.jstree", function(e, data) {
-					var node = getNode(data.node, mainInstance, instance);
-					var parent = getNodeName(data.parent, mainInstance, instance);
-					var parentNode = getNode(parent, mainInstance, instance);
-					//instance.load_node(parentNode, function() {
-						console.log("moved");
-						console.log(node, parent, data.position);
-						redraw(mainInstance, instance, textKey);
-					//});					
-				})
-				.on("redraw.jstree", function (e, data) {
-					instance.redraw(true);
-				})
-				.on("rename_node.jstree", function(e, data) {
-					instance.redraw(true);
+					redraw(mainInstance, instance, textKey);
 				})
 				.on("model.jstree", function(e, args) {										
 					redraw(mainInstance, instance, textKey);
