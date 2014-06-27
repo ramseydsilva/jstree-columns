@@ -5,6 +5,8 @@
  *
  * Licensed under the MIT license:
  *   http://www.opensource.org/licenses/mit-license.php
+ * 
+ * Author Ramsey D'silva (ramseydsilva.com)
  *
  */
 
