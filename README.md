@@ -13,6 +13,13 @@ Prerequisites
 * [JStree](jstree)
 * [Twitter bootstrap](bootstrap) (optional) but recommended
 
+
+Screenshot
+----------
+
+![Screenshot](screenshot.png?raw=true "Js Columns Screenshot")
+
+
 Concept
 -------
 
